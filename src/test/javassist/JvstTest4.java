@@ -818,6 +818,29 @@ public class JvstTest4 extends JvstTestRoot {
         assertEquals(100, invoke(obj, "test44"));
     }
 
+    public void testThrowExpression() throws Exception {
+        CtClass cc =  sloader.get("test4.JASSIST207");
+        CtMethod m1 = cc.getDeclaredMethod("test");
+
+        /**
+         * the following change gives me a:
+         *      StackMapTable error:
+         *      bad offset in method test4.JASSIST207.test()I"
+         *      type="java.lang.VerifyError">
+         */
+        m1.insertBefore("throw new AssertionError((Object) \"assertion error\");");
+
+        /**
+         * Switching to the following eliminates the error, which backs up the idea that we could be dealing
+         * with a dead code detected issue for this case.
+         */
+        // m1.insertBefore("if (!stillOkay) throw new AssertionError((Object) \"assertion error\");");
+
+        cc.writeFile();
+        Object obj = make(cc.getName());
+        assertEquals(10, invoke(obj, "test"));
+    }
+
     public void testJIRA186() throws Exception {
     	CtClass cc = sloader.get("test4.JIRA186");
     	cc.getDeclaredMethod("test").insertBefore("{" +
