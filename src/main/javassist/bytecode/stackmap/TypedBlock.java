@@ -133,6 +133,8 @@ public class TypedBlock extends BasicBlock {
                         String methodDesc, boolean isStatic, boolean isConstructor)
         throws BadBytecode
     {
+        System.out.println("******* xxx TypedBlock.initFirstBlock("+maxStack +", " + maxLocals +", " + className
+                +methodDesc + ",  boolean, boolean) entered");
         if (methodDesc.charAt(0) != '(')
             throw new BadBytecode("no method descriptor: " + methodDesc);
 
@@ -158,6 +160,9 @@ public class TypedBlock extends BasicBlock {
 
         numLocals = n;
         localsTypes = locals;
+        System.out.println("******* xxx TypedBlock.initFirstBlock("+maxStack +", " + maxLocals +", " + className
+                +methodDesc + ",  boolean, boolean) returning localsTypes=" + localsTypes);
+
     }
 
     private static int descToTag(String desc, int i,

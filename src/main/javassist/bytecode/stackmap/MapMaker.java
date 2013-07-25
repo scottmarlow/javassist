@@ -88,11 +88,13 @@ public class MapMaker extends Tracer {
     public static StackMapTable make(ClassPool classes, MethodInfo minfo)
         throws BadBytecode
     {
+        System.out.println("******* xxx MapMaker.make(ClassPool, MethodInfo) entered");
         CodeAttribute ca = minfo.getCodeAttribute();
         if (ca == null)
             return null;
 
         TypedBlock[] blocks;
+        System.out.println("******* xxx MapMaker.make(ClassPool, MethodInfo) 1.");
         try {
             blocks = TypedBlock.makeBlocks(minfo, ca, true);
         }
@@ -102,15 +104,17 @@ public class MapMaker extends Tracer {
 
         if (blocks == null)
             return null;
-
+        System.out.println("******* xxx MapMaker.make(ClassPool, MethodInfo) 2.");
         MapMaker mm = new MapMaker(classes, minfo, ca);
+        System.out.println("******* xxx MapMaker.make(ClassPool, MethodInfo) 3., blocks.length = " + blocks.length +
+                ", blocks[0].localsTypes=" + blocks[0].localsTypes);
         try {
             mm.make(blocks, ca.getCode());
         }
         catch (BadBytecode bb) {
             throw new BadBytecode(minfo, bb);
         }
-
+        System.out.println("******* xxx MapMaker.make(ClassPool, MethodInfo) 4 (about to return mm.toStackMap().");
         return mm.toStackMap(blocks);
     }
 
@@ -161,13 +165,25 @@ public class MapMaker extends Tracer {
     void make(TypedBlock[] blocks, byte[] code)
         throws BadBytecode
     {
+        System.out.println("******* xxx MapMaker.make(TypedBlock[], byte[] code) entered, blocks.length = " + blocks.length +
+                ", blocks[0].localsTypes=" + (blocks[0] != null ? blocks[0].localsTypes : "null blocks[0]"));
         make(code, blocks[0]);
+        System.out.println("******* xxx MapMaker.make(TypedBlock[], byte[] code) 1., blocks.length = " + blocks.length +
+                ", blocks[0].localsTypes=" + (blocks[0] != null ? blocks[0].localsTypes : "null blocks[0]"));
+
         findDeadCatchers(code, blocks);
+
+        System.out.println("******* xxx MapMaker.make(TypedBlock[], byte[] code) 2., blocks.length = " + blocks.length +
+                ", blocks[0].localsTypes=" + (blocks[0] != null ? blocks[0].localsTypes : "null blocks[0]"));
         try {
             fixTypes(code, blocks);
+            System.out.println("******* xxx MapMaker.make(TypedBlock[], byte[] code) 3., blocks.length = " + blocks.length +
+                    ", blocks[0].localsTypes=" + (blocks[0] != null ? blocks[0].localsTypes : "null blocks[0]"));
+
         } catch (NotFoundException e) {
             throw new BadBytecode("failed to resolve types", e);
         }
+        System.out.println("******* xxx MapMaker.make(TypedBlock[], byte[] code) returning");
     }
 
     // Phase 1
@@ -175,6 +191,8 @@ public class MapMaker extends Tracer {
     private void make(byte[] code, TypedBlock tb)
         throws BadBytecode
     {
+        System.out.println("******* xxx MapMaker.make(byte[] code, TypedBlock) entered, localsTypes length = " +
+                localsTypes.length + ", tb.exit = " + tb.exit);
         copyTypeData(tb.stackTop, tb.stackTypes, stackTypes);
         stackTop = tb.stackTop;
         copyTypeData(tb.localsTypes.length, tb.localsTypes, localsTypes);
@@ -191,15 +209,19 @@ public class MapMaker extends Tracer {
         if (tb.exit != null) {
             for (int i = 0; i < tb.exit.length; i++) {
                 TypedBlock e = (TypedBlock)tb.exit[i];
-                if (e.alreadySet())
+                if (e.alreadySet()) {
+System.out.println("******* xxx MapMaker.make(byte[] code, TypedBlock) already reached this block, will merge");
                     mergeMap(e, true);
+                }
                 else {
+System.out.println("******* xxx MapMaker.make(byte[] code, TypedBlock) first time reaching this block");
                     recordStackMap(e);
                     MapMaker maker = new MapMaker(this);
                     maker.make(code, e);
                 }
             }
         }
+        System.out.println("******* xxx MapMaker.make(byte[] code, TypedBlock) returning");
     }
 
     private void traceException(byte[] code, TypedBlock.Catch handler)
@@ -208,6 +230,7 @@ public class MapMaker extends Tracer {
         while (handler != null) {
             TypedBlock tb = (TypedBlock)handler.body;
             if (tb.alreadySet()) {
+System.out.println("******* xxx MapMaker.traceException(byte[] code, TypedBlock.Catch handler) already reached this block, will merge");
                 mergeMap(tb, false);
                 if (tb.stackTop < 1)
                     throw new BadBytecode("bad catch clause: " + handler.typeIndex);
@@ -216,9 +239,13 @@ public class MapMaker extends Tracer {
                                          tb.stackTypes[0]);
             }
             else {
+System.out.println("******* xxx MapMaker.traceException(byte[] code, TypedBlock.Catch handler) 1. first time reaching this block, tb.exit = " + tb.exit);
                 recordStackMap(tb, handler.typeIndex);
+System.out.println("******* xxx MapMaker.traceException(byte[] code, TypedBlock.Catch handler) 2. first time reaching this block, tb.exit = " + tb.exit);
                 MapMaker maker = new MapMaker(this);
+System.out.println("******* xxx MapMaker.traceException(byte[] code, TypedBlock.Catch handler) 3. first time reaching this block, tb.exit = " + tb.exit);
                 maker.make(code, tb);
+System.out.println("******* xxx MapMaker.traceException(byte[] code, TypedBlock.Catch handler) 4. first time reaching this block, tb.exit = " + tb.exit);
             }
 
             handler = handler.next;
@@ -312,10 +339,12 @@ public class MapMaker extends Tracer {
      */
 
     private void findDeadCatchers(byte[] code, TypedBlock[] blocks) throws BadBytecode {
+        System.out.println("******* xxx MapMaker.findDeadCatchers(byte[] code, TypedBlock[] ) entered");
         int len = blocks.length;
         for (int i = 0; i < len; i++) {
             TypedBlock block = blocks[i];
             if (block.localsTypes == null) { // if block is dead code
+                System.out.println("******* xxx MapMaker.findDeadCatchers FOUND DEAD BLOCK (localstype is null) ************* ");
                 BasicBlock.Catch handler = block.toCatch;
                 while (handler != null)
                     if (handler.body == block) {
@@ -328,6 +357,7 @@ public class MapMaker extends Tracer {
                         handler = handler.next;
             }
         }
+        System.out.println("******* xxx MapMaker.findDeadCatchers(byte[] code, TypedBlock[] ) returning");
     }
 
     // Phase 2
@@ -340,6 +370,7 @@ public class MapMaker extends Tracer {
      * their types are also fixed when they are found. 
      */
     private void fixTypes(byte[] code, TypedBlock[] blocks) throws NotFoundException, BadBytecode {
+        System.out.println("******* xxx MapMaker.fixTypes(byte[] code, TypedBlock[] ) entered");
         ArrayList preOrder = new ArrayList();
         int len = blocks.length;
         int index = 0;
@@ -357,9 +388,11 @@ public class MapMaker extends Tracer {
                     index = block.stackTypes[j].dfs(preOrder, index, classPool);
             }
         }
+        System.out.println("******* xxx MapMaker.fixTypes(byte[] code, TypedBlock[] ) returning");
     }
 
     private void fixDeadcode(byte[] code, TypedBlock block) throws BadBytecode {
+        System.out.println("******* xxx MapMaker.fixDeadcode(byte[] code, TypedBlock ) entered");
         int pos = block.position;
         int len = block.length - 3;
         if (len < 0)
@@ -371,11 +404,17 @@ public class MapMaker extends Tracer {
 
         code[pos + len] = (byte)Bytecode.GOTO;
         ByteArray.write16bit(-len, code, pos + len + 1);
+        System.out.println("******* xxx MapMaker.fixDeadcode(byte[] code, TypedBlock ) returning");
     }
 
     // Phase 3
 
     public StackMapTable toStackMap(TypedBlock[] blocks) {
+
+        System.out.println("******* xxx MapMaker.toStackMap(TypedBlock[]) entered with blocks length=" + (blocks != null ? blocks.length : 0) );
+        //for (int looper = 0; looper < blocks.length; looper++)
+        //    System.out.println(blocks[looper]);
+
         StackMapTable.Writer writer = new StackMapTable.Writer(32);
         int n = blocks.length;
         TypedBlock prev = blocks[0];
@@ -397,6 +436,7 @@ public class MapMaker extends Tracer {
             }
             else if (bb.incoming == 0) {
                 // dead code.
+                System.out.println("******* xxx MapMaker.toStackMap(TypedBlock[]) DEAD CODE as TypedBlock.incoming == 0 *******");
                 writer.sameFrame(offsetDelta);
                 offsetDelta = bb.length - 1;
                 prev = bb;
@@ -404,7 +444,7 @@ public class MapMaker extends Tracer {
             else
                 offsetDelta += bb.length;
         }
-
+        System.out.println("******* xxx MapMaker.toStackMap(TypedBlock[]) returning after calling writer.toStackMapTable(cpool)");
         return writer.toStackMapTable(cpool);
     }
 

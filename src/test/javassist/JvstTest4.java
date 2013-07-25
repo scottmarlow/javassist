@@ -819,9 +819,10 @@ public class JvstTest4 extends JvstTestRoot {
     }
 
     public void testThrowExpression() throws Exception {
+        System.out.println("xxx testThrowExpression started");
         CtClass cc =  sloader.get("test4.JASSIST207");
         CtMethod m1 = cc.getDeclaredMethod("test");
-
+        cc.debugWriteFile("BeforeInsertThrowExpressionxxx/");
         /**
          * the following change gives me a:
          *      StackMapTable error:
@@ -834,14 +835,16 @@ public class JvstTest4 extends JvstTestRoot {
          * Switching to the following eliminates the error, which backs up the idea that we could be dealing
          * with a dead code detected issue for this case.
          */
-        // m1.insertBefore("if (!stillOkay) throw new AssertionError((Object) \"assertion error\");");
+        //m1.insertBefore("if (!stillOkay) throw new AssertionError((Object) \"assertion error\");");
 
         cc.writeFile();
+        cc.debugWriteFile("ThrowExpressionxxx/");
         Object obj = make(cc.getName());
         assertEquals(10, invoke(obj, "test"));
     }
 
     public void testJIRA186() throws Exception {
+        System.out.println("xxx testJIRA186 started");
     	CtClass cc = sloader.get("test4.JIRA186");
     	cc.getDeclaredMethod("test").insertBefore("{" +
     			  "  java.util.List l = new java.util.ArrayList();" +
