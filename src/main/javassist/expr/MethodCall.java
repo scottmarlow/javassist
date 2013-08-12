@@ -237,6 +237,7 @@ public class MethodCall extends Expr {
                 bytecode.addLoad(retVar, retType);
 
             replace0(pos, bytecode, opcodeSize);
+            ca.setMaxLocals(bytecode.getMaxLocals());
         }
         catch (CompileError e) { throw new CannotCompileException(e); }
         catch (NotFoundException e) { throw new CannotCompileException(e); }
